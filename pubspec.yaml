@@ -1,8 +1,8 @@
 name: bkclient_flutter
-description: A new Flutter plugin.
+description: Flutter bkclient.
 version: 0.0.1
 author:
-homepage:
+homepage: https://github.com/bunker89/BKClient-flutter
 
 environment:
   sdk: '>=2.12.0 <3.0.0'
