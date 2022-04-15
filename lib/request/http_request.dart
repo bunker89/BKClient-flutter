@@ -6,6 +6,7 @@ import 'package:bkclient_flutter/request/bk_constants.dart';
 import 'package:bkclient_flutter/request/link.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/http.dart';
 
 /// result is network result not meaning api result
 class RequestResult<T extends Link?> {
@@ -22,7 +23,6 @@ class Http {
   Http(this.serverUrl);
 
   Future<RequestResult<L?>> syncPost<L extends Link>(LinkNotifier<L> notifier,
-
       {GlobalKey<ScaffoldState>? globalKey, Function()? errorCallback}) {
     if (notifier.state != LinkState.ready)
       return Future.value(RequestResult(false, notifier.link));
@@ -31,10 +31,11 @@ class Http {
         readyLock: false, globalKey: globalKey, errorCallback: errorCallback);
   }
 
-  Future<RequestResult<L?>> postRequest<L extends Link>(LinkNotifier<L>? notifier,
+  Future<RequestResult<L?>> postRequest<L extends Link>(
+      LinkNotifier<L>? notifier,
       {GlobalKey<ScaffoldState>? globalKey,
-        Function()? errorCallback,
-        readyLock = true}) async {
+      Function()? errorCallback,
+      readyLock = true}) async {
     if (readyLock) {
       if (notifier!.state != LinkState.ready)
         return RequestResult(false, notifier.link);
@@ -43,7 +44,8 @@ class Http {
     http.Response response;
     try {
       response = await http
-          .post(Uri.parse(serverUrl), body: jsonEncode(notifier!.link!.getSendJSON()))
+          .post(Uri.parse(serverUrl),
+              body: jsonEncode(notifier!.link!.getSendJSON()))
           .timeout(Duration(seconds: 7));
     } on Exception catch (e) {
       Debug.debugging(
@@ -77,7 +79,9 @@ class Http {
   }
 
   Future<RequestResult<T>> linkPostRequest<T extends Link>(T link,
-      {GlobalKey<ScaffoldState>? globalKey, Function()? errorCallback, int timeout = 7}) async {
+      {GlobalKey<ScaffoldState>? globalKey,
+      Function()? errorCallback,
+      int timeout = 7}) async {
     http.Response response;
     try {
       response = await http
@@ -94,10 +98,60 @@ class Http {
       try {
         var json = jsonDecode(response.body);
         link.receiveJSON(json);
-        return RequestResult(true, link, result: json[BKConstants.BK_WORKING_RESULT]);
+        return RequestResult(true, link,
+            result: json[BKConstants.BK_WORKING_RESULT]);
       } catch (e, stack) {
         String errorMessage =
             "HttpRequest receive error, error message:$e, response body:${response.body}"
+            " link$link";
+        Debug.debugging("HttpRequest", errorMessage);
+        Debug.debugging("HttpRequest", stack.toString());
+        _showNetErrSnackBar(globalKey);
+      }
+    } else {
+      _showNetErrSnackBar(globalKey);
+      Debug.debugging("HttpRequest", "network error");
+    }
+    return RequestResult(false, link);
+  }
+
+  Future<RequestResult<T>> linkPostRequestWithFile<T extends Link>(T link,
+      {GlobalKey<ScaffoldState>? globalKey,
+      Function()? errorCallback,
+      int timeout = 7,
+      String fileFiled = "files",
+      String dataField = "json",
+      List<File>? files}) async {
+    http.StreamedResponse response;
+    try {
+      MultipartRequest request = new http.MultipartRequest('POST', Uri.parse(serverUrl));
+      request.fields[dataField] = jsonEncode(link.getSendJSON());
+
+      if (files != null) {
+        for (File file in files) {
+          request.files.add(
+              await http.MultipartFile.fromPath(fileFiled, file.path));
+        }
+      }
+
+      response = await request.send();
+    } on Exception catch (e) {
+      Debug.debugging("HttpPost", "http request timeout $e");
+      _showNetErrSnackBar(globalKey);
+      if (errorCallback != null) errorCallback();
+      return RequestResult(false, link);
+    }
+
+    if (response.statusCode == 200) {
+      String bodyString = await response.stream.bytesToString();
+      try {
+        var json = jsonDecode(bodyString);
+        link.receiveJSON(json);
+        return RequestResult(true, link,
+            result: json[BKConstants.BK_WORKING_RESULT]);
+      } catch (e, stack) {
+        String errorMessage =
+            "HttpRequest receive error, error message:$e, response body:$bodyString"
             " link$link";
         Debug.debugging("HttpRequest", errorMessage);
         Debug.debugging("HttpRequest", stack.toString());

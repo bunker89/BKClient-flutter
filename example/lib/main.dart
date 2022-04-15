@@ -1,8 +1,13 @@
+import 'dart:io';
+
+import 'package:bkclient_flutter/request/http_request.dart';
+import 'package:bkclient_flutter/request/link.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:bkclient_flutter/bkclient_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(MyApp());
@@ -13,8 +18,18 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
+class TestLink extends Link {
+  @override
+  Map<String, dynamic> getSendJSON() {
+    return {};
+  }
+
+  @override
+  void receiveJSON(Map<String, dynamic> map) {}
+}
+
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
+  static const String serverBaseAddr = "http://192.168.75.153:8080/apigate-resource";
 
   @override
   void initState() {
@@ -22,24 +37,22 @@ class _MyAppState extends State<MyApp> {
     initPlatformState();
   }
 
+  Future<File> getImageFileFromAssets(String path) async {
+    final byteData = await rootBundle.load('assets/$path');
+
+    final file = File('${(await getTemporaryDirectory()).path}/$path');
+    await file.writeAsBytes(byteData.buffer
+        .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+
+    return file;
+  }
+
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      platformVersion = await BkclientFlutter.platformVersion;
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
+    TestLink link = TestLink();
 
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
+    Http(serverBaseAddr).linkPostRequestWithFile(link,
+        files: [await getImageFileFromAssets("test.png")]);
   }
 
   @override
@@ -49,9 +62,7 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
-        ),
+        body: Center(),
       ),
     );
   }
