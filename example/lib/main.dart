@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:bkclient_flutter/bkclient_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() {

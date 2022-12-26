@@ -10,7 +10,7 @@ class PullBinder <T extends JSONModel> extends LinkNotifier<PullLink> {
     _proxy = builder(this);
   }
 
-  T get(i) => _proxy.get(i);
+  T get(i, {bool autoReload = true}) => _proxy.get(i, autoReload);
 
   int get length => _proxy.length;
 
