@@ -61,7 +61,7 @@ abstract class PullProxy<M extends JSONModel> {
 
   M get(int i, bool autoReload) {
     if (autoReload && i + _trigger >= _pool.length) {
-      WidgetsBinding.instance?.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         _request();
       });
     }
