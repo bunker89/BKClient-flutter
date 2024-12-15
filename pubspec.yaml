@@ -1,6 +1,6 @@
 name: bkclient_flutter
 description: Flutter bkclient.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/bunker89/bkclient_flutter
 
 environment:
